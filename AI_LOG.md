@@ -11,6 +11,7 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
 | Claude Code (model: Claude Opus 5.5), VS Code eklentisi | Görev analizi, plan, kod ve test taslakları, komut çalıştırma, doğrulama script'leri |
 | Headless Chrome + `puppeteer-core` (repoya eklenmedi) | Mobil taşma ölçümü, klavyeyle form akışı kontrolü |
 | `curl` | API durum kodlarını istemciyi atlayarak doğrudan sınamak |
+| ChatGPT | Neon arayüzünde bağlantı adresinin nerede olduğu ve `.env.local` biçimi hakkında yardım |
 
 ## Görev dağılımı
 
@@ -92,7 +93,37 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
   bu tip `next build`/`dev` tarafından `.next/` içine üretiliyor, temiz klonda yok. Yerelde `.next/` olduğu için fark edilmemişti.
 - Düzeltme: `typecheck` script'i önce `next typegen` çalıştırıyor. Temiz klonda lint, typecheck, test ve build geçti.
 
-<!-- Sonraki kayıtlar: Neon kurulumu, entegrasyon testi, Vercel deploy, canlı doğrulama. -->
+### 13:30 — GitHub
+- Public repo (`Musakusbey/rutinsiz`) açıkça onayım alındıktan sonra oluşturuldu. Push öncesi kontrol: repoda yalnızca
+  `.env.example` var, bağlantı adresi/şifre kalıbı taraması temiz.
+- GitHub Actions'taki ilk çalışma yeşil; log'da **54 test geçti, 4 atlandı** (atlananlar gerçek veritabanı testleri, CI'da `DATABASE_URL_TEST` yok).
+
+### 14:34 — Neon kurulumu
+- Proje **AWS US East 2 (Ohio)** bölgesinde açıldı (planda Frankfurt vardı). **Karar:** Projeyi yeniden kurmak yerine
+  Vercel fonksiyon bölgesi Frankfurt'a çekilmeyecek, varsayılan Washington (iad1) bırakılacak; böylece uygulama ile
+  veritabanı aynı kıyıda kalıyor. Neon'da ana branch'in adı `main` değil `production`.
+- `production`'dan `test` branch'i açıldı; entegrasyon testi yalnızca bunu kullanıyor.
+- İki bağlantı adresi de `.env.local`'a yazılması için AI sohbetine yapıştırıldı. Veritabanında yalnızca kurgusal veri
+  var; değerlendirme bittikten sonra iki şifre de Neon'dan sıfırlanacak.
+
+### 14:36 — Gerçek veritabanında doğrulama
+- `npm run db:migrate:test` ve `npm run db:migrate` iki branch'e şemayı uyguladı.
+- Neon adresindeki `channel_binding=require` parametresinin postgres.js ile sorun çıkarıp çıkarmayacağından emin değildik;
+  denendi, bağlantı sorunsuz kuruldu.
+- İki adresin gerçekten ayrı veritabanlarına gittiği şifre yazdırılmadan kontrol edildi: farklı `neon.branch_id`
+  (`br-old-voice-…` / `br-lively-block-…`), ikisi de pooled.
+- Entegrasyon testi **4/4 geçti**: kaydedip geri okuma, hizmet listesi CHECK'i, uzunluk CHECK'i, NUL reddi.
+- 13:13'teki varsayım doğrulandı: Postgres NUL karakterini `22021 invalid byte sequence for encoding "UTF8": 0x00`
+  ile reddediyor. Yani `validation.ts`'deki kontrol karakteri kuralı olmasa bu girdi 422 yerine 500 üretirdi.
+- Testlerin kendi kayıtlarını sildiği doğrulandı: test branch'inde 0 satır kaldı.
+
+### 14:40 — Uçtan uca: tarayıcı → API → Neon
+- `next build` + `next start` gerçek veritabanıyla çalıştırıldı; form headless Chrome'da (390 px) yalnızca klavyeyle dolduruldu.
+- Ekranda "Talebiniz alındı" ve kayıt numarası `f9cb0df3-0633-45a1-921f-c48238e19afb` göründü, odak başlığa taşındı.
+- Başarı mesajına güvenmek yerine veritabanı sorgulandı: bu `id` ile satır production tablosunda var; ad/e-posta/hizmet
+  doğru, Türkçe karakterler bozulmamış, e-posta küçük harfe çevrilmiş.
+
+<!-- Sonraki kayıtlar: Vercel deploy, canlı doğrulama. -->
 
 ## Özet: kabul / değiştir / ret
 
