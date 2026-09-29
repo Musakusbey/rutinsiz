@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: "node",
     include: ["tests/**/*.test.{ts,tsx}"],
-    // Makes DATABASE_URL_TEST from .env.local visible to the integration test.
-    env: loadEnv(mode, process.cwd(), ""),
+    // Only the test database is exposed to tests. The production DATABASE_URL from
+    // .env.local is deliberately not passed through, so no test can write to it.
+    env: { DATABASE_URL_TEST: loadEnv(mode, process.cwd(), "").DATABASE_URL_TEST ?? "" },
   },
 }));
