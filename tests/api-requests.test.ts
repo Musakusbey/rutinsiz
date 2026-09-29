@@ -95,6 +95,25 @@ describe("POST /api/requests", () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
+  // Found on the live site: Windows curl sent "ı" as the cp1254 byte 0xFD. The body was decoded
+  // leniently and "Canl�" was stored. Bytes that are not valid UTF-8 must be rejected instead.
+  it("returns 400 for a body that is not valid UTF-8 instead of storing replacement characters", async () => {
+    const json = JSON.stringify({ ...valid, name: "CanlX API Testi" });
+    const bytes = Buffer.from(json, "utf8");
+    bytes[bytes.indexOf("X")] = 0xfd; // "ı" in Windows-1254
+
+    const res = await POST(
+      new Request("http://localhost/api/requests", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: bytes,
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
   it("returns 413 when the body is larger than 10 KB", async () => {
     const res = await post(JSON.stringify({ ...valid, description: "a".repeat(11 * 1024) }));
     expect(res.status).toBe(413);

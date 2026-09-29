@@ -21,15 +21,24 @@ export async function POST(request: Request): Promise<Response> {
     return json(413, tooLarge);
   }
 
-  let raw: string;
+  let bytes: ArrayBuffer;
   try {
-    raw = await request.text();
+    bytes = await request.arrayBuffer();
   } catch {
     return json(400, { error: "İstek gövdesi okunamadı." });
   }
   // Content-Length can be missing (chunked) or wrong, so measure what actually arrived.
-  if (Buffer.byteLength(raw, "utf8") > MAX_BODY_BYTES) {
+  if (bytes.byteLength > MAX_BODY_BYTES) {
     return json(413, tooLarge);
+  }
+
+  // JSON must be UTF-8. request.text() would silently turn invalid bytes into "�"
+  // and we would store corrupted text, so decode strictly and reject instead.
+  let raw: string;
+  try {
+    raw = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return json(400, { error: "İstek gövdesi geçerli UTF-8 değil." });
   }
 
   let body: unknown;
