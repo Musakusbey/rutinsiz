@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "db:migrate:test": "node --env-file-if-exists=.env.local scripts/migrate.mjs --test"
   },
