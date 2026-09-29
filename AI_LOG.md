@@ -123,7 +123,36 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
 - Başarı mesajına güvenmek yerine veritabanı sorgulandı: bu `id` ile satır production tablosunda var; ad/e-posta/hizmet
   doğru, Türkçe karakterler bozulmamış, e-posta küçük harfe çevrilmiş.
 
-<!-- Sonraki kayıtlar: Vercel deploy, canlı doğrulama. -->
+### 14:47 — Vercel deploy
+- Repo Vercel'e bağlandı, yalnızca `DATABASE_URL` (production branch) tanımlandı. Canlı adres: https://rutinsiz.vercel.app
+- Deploy edilen commit, GitHub deployments API'den okundu ve yereldeki `HEAD` ile karşılaştırıldı: aynı SHA.
+- Canlıda `curl` ile: 201, 422, NUL içeren açıklama → **422** (13:13'teki kararın canlıdaki karşılığı), bozuk JSON → 400,
+  honeypot → 400, 20 KB → 413, `text/plain` → 415, `GET` → 405. Güvenlik başlıkları geliyor; Vercel ayrıca HSTS ekliyor.
+
+### 14:48 — Canlıda bulunan hata: geçersiz UTF-8 sessizce bozuk veri olarak kaydediliyordu
+- **Belirti:** curl ile gönderilen `"Canlı API Testi"` kaydı veritabanında `Canl� API Testi` olarak duruyordu.
+  Tarayıcıdan gönderilen kayıtlarda Türkçe karakterler sağlamdı.
+- **Teşhis (ölçerek):** curl'ün gönderdiği baytlar küçük bir yerel sunucuda yakalandı: `ı` için UTF-8 `c4 b1` yerine
+  `fd` (Windows-1254) gidiyordu. Yani istemci hatalıydı; ama sunucu da `request.text()` ile geçersiz baytı sessizce
+  `U+FFFD`'ye çevirip **bozuk veriyi kaydetti**. Asıl kusur buydu.
+- **Düzeltme:** Gövde `TextDecoder("utf-8", { fatal: true })` ile çözülüyor; geçersiz UTF-8 → 400.
+  Önce hatayı yeniden üreten test yazıldı ve kırmızı olduğu görüldü, sonra düzeltme yapıldı (commit `62e954c`).
+- **Canlıda tekrar sınandı:** aynı curl komutu artık **400** alıyor; gövde UTF-8 dosyadan gönderildiğinde
+  `ş ğ ü ö ç ı İ` veritabanına sağlam yazılıyor. Bozuk kayıt (`99acff82…`) bu hatanın kanıtı olarak tabloda bırakıldı.
+
+### 14:51 — Canlı sitede tarayıcı ve erişilebilirlik kontrolleri
+- 320 / 390 / 768 / 1440 px: yatay taşma yok.
+- Klavyeyle akış canlıda tekrarlandı: başarı mesajı `562dc4b9-…` numarasıyla çıktı, satır production tablosunda bulundu.
+- Lighthouse (mobil, canlı adres): **Erişilebilirlik 100, En iyi pratikler 100, SEO 100**; başarısız denetim yok.
+
+### 14:55 — README
+- README'deki sayılar ve iddialar yazıldıktan sonra kaynağıyla karşılaştırıldı:
+  - test sayıları Vitest çıktısıyla, CI rakamları GitHub Actions log'uyla eşleşiyor;
+  - "şablondan sonra değiştirilen dosyalar" listesi `git diff c157c8b` ile karşılaştırıldı. `package-lock.json` eksikti, eklendi.
+
+## Harcanan süre
+
+Yaklaşık 2 saat (12:59–15:00). Neon/Vercel hesap kurulumu ve canlı doğrulama dahil.
 
 ## Özet: kabul / değiştir / ret
 
@@ -135,3 +164,5 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
 | Zod uzunluk sayımı için özel kod | Gereksiz çıktı (Zod 4.6 zaten kod noktası sayıyor); test ile sabitlendi |
 | 415 durum kodu | Plana eklendi (gerekçe yukarıda) |
 | Boş alan mesajı | Test bulgusu üzerine değiştirildi |
+| Vercel bölgesini Frankfurt yapmak | Uygulanmadı; veritabanı Ohio'da açıldığı için varsayılan iad1 bırakıldı |
+| Gövdeyi `request.text()` ile okumak | Canlıdaki bulgu üzerine değiştirildi; katı UTF-8 çözümü |
