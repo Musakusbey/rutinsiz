@@ -11,7 +11,7 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
 | Claude Code (model: Claude Opus 5.5), VS Code eklentisi | Görev analizi, plan, kod ve test taslakları, komut çalıştırma, doğrulama script'leri |
 | Headless Chrome + `puppeteer-core` (repoya eklenmedi) | Mobil taşma ölçümü, klavyeyle form akışı kontrolü |
 | `curl` | API durum kodlarını istemciyi atlayarak doğrudan sınamak |
-| ChatGPT | Neon arayüzünde bağlantı adresinin nerede olduğu ve `.env.local` biçimi hakkında yardım |
+| ChatGPT | Neon kurulumunda yardım (bağlantı adresinin arayüzde nerede olduğu, `.env.local` biçimi) ve Claude'a gönderilecek mesajların hazırlanması |
 
 ## Görev dağılımı
 
@@ -93,7 +93,7 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
   bu tip `next build`/`dev` tarafından `.next/` içine üretiliyor, temiz klonda yok. Yerelde `.next/` olduğu için fark edilmemişti.
 - Düzeltme: `typecheck` script'i önce `next typegen` çalıştırıyor. Temiz klonda lint, typecheck, test ve build geçti.
 
-### 13:30 — GitHub
+### 14:25 — GitHub
 - Public repo (`Musakusbey/rutinsiz`) açıkça onayım alındıktan sonra oluşturuldu. Push öncesi kontrol: repoda yalnızca
   `.env.example` var, bağlantı adresi/şifre kalıbı taraması temiz.
 - GitHub Actions'taki ilk çalışma yeşil; log'da **54 test geçti, 4 atlandı** (atlananlar gerçek veritabanı testleri, CI'da `DATABASE_URL_TEST` yok).
@@ -121,7 +121,8 @@ Kayıtlar iş yapılırken tutuldu; sonradan yeniden kurgulanmadı. Saatler İst
 - `next build` + `next start` gerçek veritabanıyla çalıştırıldı; form headless Chrome'da (390 px) yalnızca klavyeyle dolduruldu.
 - Ekranda "Talebiniz alındı" ve kayıt numarası `f9cb0df3-0633-45a1-921f-c48238e19afb` göründü, odak başlığa taşındı.
 - Başarı mesajına güvenmek yerine veritabanı sorgulandı: bu `id` ile satır production tablosunda var; ad/e-posta/hizmet
-  doğru, Türkçe karakterler bozulmamış, e-posta küçük harfe çevrilmiş.
+  doğru, Türkçe karakterler bozulmamış. Bu testte yazılan e-posta zaten küçük harfti; e-postanın küçük harfe çevrilmesi
+  tarayıcı testinde değil, API ve form testlerinde doğrulandı (ör. `Ayse@Ornek.com` → `ayse@ornek.com`).
 
 ### 14:47 — Vercel deploy
 - Repo Vercel'e bağlandı, yalnızca `DATABASE_URL` (production branch) tanımlandı. Canlı adres: https://rutinsiz.vercel.app
